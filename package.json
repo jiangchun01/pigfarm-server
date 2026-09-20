@@ -1,0 +1,31 @@
+{
+  "name": "pigfarm-management-server",
+  "version": "2.1.0",
+  "private": true,
+  "description": "育肥猪场管理系统 - 后端服务（Express + SQLite + JWT）",
+  "scripts": {
+    "build:server": "tsc -p tsconfig.server.json",
+    "start": "NODE_ENV=production node dist-server/index.js",
+    "server:dev": "tsx server/index.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "deasync": "^0.1.30",
+    "express": "^5.0.6",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.23.14",
+    "typescript": "~5.9"
+  }
+}
