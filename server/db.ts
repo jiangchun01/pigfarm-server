@@ -311,6 +311,110 @@ CREATE TABLE IF NOT EXISTS alert_thresholds (
 );
 `;
 
+// PostgreSQL 专用 schema（使用 SERIAL 自增和 CURRENT_TIMESTAMP）
+const PG_SCHEMA = `
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS farms (
+  id TEXT PRIMARY KEY, user_id INTEGER NOT NULL,
+  name TEXT NOT NULL, address TEXT, phone TEXT, manager TEXT,
+  capacity_pens INTEGER DEFAULT 200, remark TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS barns (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL,
+  barn_no TEXT NOT NULL, barn_type TEXT NOT NULL DEFAULT 'fattening',
+  pen_count INTEGER DEFAULT 0, last_occupied_date TEXT, remark TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS batches (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL,
+  batch_no TEXT NOT NULL, entry_date TEXT NOT NULL,
+  entry_age_days INTEGER DEFAULT 25, entry_count INTEGER DEFAULT 0,
+  current_count INTEGER DEFAULT 0, breed TEXT,
+  expected_slaughter_date TEXT, status TEXT DEFAULT 'active', remark TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS batch_barns (
+  id TEXT PRIMARY KEY, batch_id TEXT NOT NULL, barn_id TEXT NOT NULL,
+  head_count INTEGER DEFAULT 0, entry_date TEXT, remark TEXT,
+  FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE,
+  FOREIGN KEY (barn_id) REFERENCES barns(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS feed_types (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL,
+  name TEXT NOT NULL, stage TEXT,
+  stage_usage_per_head REAL DEFAULT 0, ref_price REAL DEFAULT 0, remark TEXT,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS stage_days (
+  farm_id TEXT PRIMARY KEY,
+  nursery_early INTEGER DEFAULT 7, nursery_mid INTEGER DEFAULT 10,
+  nursery_late INTEGER DEFAULT 14, fatten_early INTEGER DEFAULT 20,
+  fatten_mid INTEGER DEFAULT 30, fatten_late INTEGER DEFAULT 30,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS feed_records (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL, batch_id TEXT NOT NULL,
+  date TEXT NOT NULL, feed_type_id TEXT, feed_type_name TEXT,
+  quantity REAL DEFAULT 0, unit_price REAL DEFAULT 0, amount REAL DEFAULT 0,
+  operator TEXT, remark TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE,
+  FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS vaccines (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL,
+  name TEXT NOT NULL, type TEXT, unit TEXT,
+  ref_price REAL DEFAULT 0, applicable_stage TEXT, remark TEXT,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS vaccine_records (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL, batch_id TEXT,
+  date TEXT, vaccine_id TEXT, vaccine_name TEXT, type TEXT,
+  quantity REAL DEFAULT 0, unit TEXT, unit_price REAL DEFAULT 0,
+  amount REAL DEFAULT 0, operator TEXT, remark TEXT,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS herd_records (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL, batch_id TEXT,
+  barn_id TEXT, date TEXT, change_type TEXT,
+  change_count INTEGER DEFAULT 0, operator TEXT, remark TEXT,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS finance_records (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL, type TEXT NOT NULL,
+  category TEXT, amount REAL DEFAULT 0, date TEXT,
+  batch_id TEXT, investor TEXT, remark TEXT,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS finance_categories (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL,
+  type TEXT NOT NULL, name TEXT NOT NULL,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS todos (
+  id TEXT PRIMARY KEY, farm_id TEXT NOT NULL,
+  title TEXT NOT NULL, task_type TEXT, task_date TEXT,
+  finished INTEGER DEFAULT 0, priority TEXT DEFAULT 'mid',
+  batch_id TEXT, remark TEXT,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS alert_thresholds (
+  farm_id TEXT PRIMARY KEY,
+  herd_fluctuation REAL DEFAULT 10, feed_intake REAL DEFAULT 80,
+  survival_rate REAL DEFAULT 90, empty_pen_days INTEGER DEFAULT 30,
+  animal_health_cost REAL DEFAULT 50,
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+`;
+
 let dbInstance: IDb | null = null;
 
 export function getDb(dbPath?: string): IDb {
@@ -319,7 +423,7 @@ export function getDb(dbPath?: string): IDb {
   if (dbUrl && dbUrl.startsWith('postgres')) {
     try {
       const pgDb = new PostgresDb(dbUrl);
-      pgDb.exec(SQLITE_SCHEMA);
+      pgDb.exec(PG_SCHEMA);
       dbInstance = pgDb;
       logger.info(`[db] PostgreSQL 模式已就绪: ${dbUrl.slice(0, 30)}...`);
       return dbInstance;
