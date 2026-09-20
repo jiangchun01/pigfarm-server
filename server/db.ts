@@ -82,24 +82,31 @@ class PgStatement implements IStatement {
   }
 
   private normalizeParams(params: any[]): { text: string; values: any[] } {
+    let text: string;
+    let values: any[];
     if (this.sql.includes('?') && !this.sql.match(/[@$:][a-zA-Z_]/)) {
       let idx = 0;
-      const text = this.sql.replace(/\?/g, () => { idx++; return `$${idx}`; });
-      return { text, values: params };
-    }
-    if (params.length === 1 && typeof params[0] === 'object' && params[0] !== null) {
+      text = this.sql.replace(/\?/g, () => { idx++; return `$${idx}`; });
+      values = params;
+    } else if (params.length === 1 && typeof params[0] === 'object' && params[0] !== null) {
       const named = params[0] as Record<string, any>;
       const keys = Object.keys(named);
       const keyIdx = new Map<string, number>();
       keys.forEach((k, i) => keyIdx.set(k, i + 1));
-      const values = keys.map(k => named[k]);
-      const text = this.sql.replace(/[@$:]([a-zA-Z_][a-zA-Z0-9_]*)/g, (_m, name) => {
+      values = keys.map(k => named[k]);
+      text = this.sql.replace(/[@$:]([a-zA-Z_][a-zA-Z0-9_]*)/g, (_m, name) => {
         const idx = keyIdx.get(name);
         return idx ? `$${idx}` : _m;
       });
-      return { text, values };
+    } else {
+      text = this.sql;
+      values = params;
     }
-    return { text: this.sql, values: params };
+    // PostgreSQL: 为 INSERT 语句自动添加 RETURNING id（如果还没有的话）
+    if (text.trim().toUpperCase().startsWith('INSERT') && !text.toUpperCase().includes('RETURNING')) {
+      text = text.trim().replace(/;?\s*$/, '') + ' RETURNING id';
+    }
+    return { text, values };
   }
 
   private querySync(params: any[]): any {
