@@ -9,15 +9,6 @@
     "server:dev": "tsx server/index.ts"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^13.0.3",
-    "cors": "^2.8.6",
-    "deasync": "^0.1.30",
-    "express": "^5.0.6",
-    "jsonwebtoken": "^9.0.3",
-    "pg": "^8.13.0"
-  },
-  "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^9.6.0",
     "@types/cors": "^2.8.19",
@@ -25,7 +16,16 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24",
     "@types/pg": "^8.11.10",
-    "tsx": "^4.23.14",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "deasync": "^0.1.30",
+    "express": "^5.0.6",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.13.0",
     "typescript": "~5.9"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.14"
   }
 }
