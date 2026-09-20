@@ -1,0 +1,47 @@
+# Render 部署配置 - 育肥猪场管理系统后端服务（PostgreSQL 版）
+# 用法：将本文件放在仓库根目录，在 Render 上选择 "Blueprint" 方式部署
+# 文档：https://render.com/docs/infrastructure-as-code
+
+services:
+  - type: web
+      name: pigfarm-server
+          runtime: node
+              plan: free
+                  region: singapore
+
+                      # 构建命令：安装依赖（含 pg + deasync）+ 编译后端TypeScript
+                          buildCommand: |
+                                npm install
+                                      npx tsc -p tsconfig.server.json
+                                            echo '{"type":"commonjs"}' > dist-server/package.json
+
+                                                # 启动命令：生产模式运行编译后的后端
+                                                    startCommand: NODE_ENV=production node dist-server/index.js
+
+                                                        # 健康检查
+                                                            healthCheckPath: /api/health
+
+                                                                # 环境变量
+                                                                    envVars:
+                                                                          - key: NODE_ENV
+                                                                                  value: production
+                                                                                        - key: JWT_SECRET
+                                                                                                generateValue: true
+                                                                                                      # 关联下方 PostgreSQL 数据库的内部连接串
+                                                                                                            - key: DATABASE_URL
+                                                                                                                    fromDatabase:
+                                                                                                                              name: pigfarm-db
+                                                                                                                                        property: connectionString
+                                                                                                                                        
+                                                                                                                                            # 自动部署
+                                                                                                                                                autoDeploy: yes
+                                                                                                                                                
+                                                                                                                                                # PostgreSQL 数据库（免费版，数据不丢失）
+                                                                                                                                                databases:
+                                                                                                                                                  - name: pigfarm-db
+                                                                                                                                                      plan: free
+                                                                                                                                                          region: singapore
+                                                                                                                                                              databaseName: pigfarm
+                                                                                                                                                                  user: pigfarm
+                                                                                                                                                                      ipAllowList: []  # 只允许 Render 内部访问
+                                                                                                                                                                      
