@@ -102,8 +102,10 @@ class PgStatement implements IStatement {
       text = this.sql;
       values = params;
     }
-    // PostgreSQL: 为 INSERT 语句自动添加 RETURNING id（如果还没有的话）
-    if (text.trim().toUpperCase().startsWith('INSERT') && !text.toUpperCase().includes('RETURNING')) {
+    // PostgreSQL: 为 INSERT INTO users 语句自动添加 RETURNING id（如果还没有的话）
+    if (text.trim().toUpperCase().startsWith('INSERT') &&
+        text.toUpperCase().includes('INTO USERS') &&
+        !text.toUpperCase().includes('RETURNING')) {
       text = text.trim().replace(/;?\s*$/, '') + ' RETURNING id';
     }
     return { text, values };
